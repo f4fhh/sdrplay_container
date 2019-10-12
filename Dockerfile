@@ -4,6 +4,7 @@ LABEL maintainer="f4fhh@ducor.fr"
 LABEL sdrplayAPIversion="2.13"
 ENV MAJVERS 2.13
 ENV MINVERS .1
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
         wget \
         build-essential \
@@ -12,8 +13,10 @@ RUN apt-get update && apt-get install -y \
         sudo \
         udev \
         libusb-1.0-0-dev \
+        libblas-dev liblapack-dev \
 	fftw3-dev \
 	libsndfile1-dev \
+        libasound2-dev \
 	autoconf libtool texinfo gfortran qtbase5-dev qtmultimedia5-dev qttools5-dev libqt5serialport5-dev \
 	asciidoctor asciidoc libudev-dev \
   && rm -rf /var/lib/apt/lists/*
@@ -62,8 +65,7 @@ RUN cmake .. && make && make install
 WORKDIR /tmp
 RUN git clone https://github.com/jketterl/csdr.git -b 48khz_filter ./csdr
 WORKDIR /tmp/csdr
-ADD csdr.patch .
-RUN patch -Np1 <csdr.patch && make && make install
+RUN make && make install
 WORKDIR /tmp
 RUN git clone https://github.com/szechyjs/mbelib.git ./mbelib
 WORKDIR /tmp/mbelib/build
@@ -81,15 +83,29 @@ RUN wget http://physics.princeton.edu/pulsar/k1jt/wsjtx-2.1.0.tgz && tar xvfz ws
 WORKDIR /tmp/wsjtx-2.1.0/build
 RUN cmake .. && make && make install
 
-FROM $BASE_IMAGE AS production
-COPY --from=build /usr/local/bin/ /usr/local/bin/
-COPY --from=build /usr/local/lib/ /usr/lib/x86_64-linux-gnu/libusb-1.0.a /lib/x86_64-linux-gnu/libusb-1.0.so.0.1.0 /usr/local/lib/
-RUN \
-        ln -s /usr/local/lib/libusb-1.0.so.0.1.0 /usr/local/lib/libusb-1.0.so.0 && \
-        ln -s /usr/local/lib/libusb-1.0.so.0.1.0 /usr/local/lib/libusb-1.0.so && \
-        ldconfig
-COPY --from=build /tmp/dump1090fr24/ /usr/lib/fr24/
-COPY config.js /usr/lib/fr24/public_html/
-COPY fr24feed.ini /etc/
-COPY LICENSE LICENSE_fr24feed LICENSE_sdrplay /usr/local/share/
-EXPOSE 1234 8080 8754 55132
+WORKDIR /tmp
+RUN git clone https://github.com/rxseger/rx_tools ./rx_tools
+WORKDIR /tmp/rx_tools/build
+RUN cmake .. && make && make install
+
+WORKDIR /tmp
+RUN git clone https://github.com/wb2osz/direwolf.git ./direwolf
+WORKDIR /tmp/direwolf
+RUN make && make install
+
+WORKDIR /
+RUN git clone https://github.com/jketterl/openwebrx.git ./openwebrx
+
+
+# FROM $BASE_IMAGE AS production
+# COPY --from=build /usr/local/bin/ /usr/local/bin/
+# COPY --from=build /usr/local/lib/ /usr/lib/x86_64-linux-gnu/libusb-1.0.a /lib/x86_64-linux-gnu/libusb-1.0.so.0.1.0 /usr/local/lib/
+# RUN \
+#         ln -s /usr/local/lib/libusb-1.0.so.0.1.0 /usr/local/lib/libusb-1.0.so.0 && \
+#         ln -s /usr/local/lib/libusb-1.0.so.0.1.0 /usr/local/lib/libusb-1.0.so && \
+#         ldconfig
+# COPY --from=build /tmp/dump1090fr24/ /usr/lib/fr24/
+# COPY config.js /usr/lib/fr24/public_html/
+# COPY fr24feed.ini /etc/
+# COPY LICENSE LICENSE_fr24feed LICENSE_sdrplay /usr/local/share/
+# EXPOSE 1234 8080 8754 55132
