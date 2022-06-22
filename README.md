@@ -1,3 +1,7 @@
+## From 2020-1-20 sdrplay_container development is discontinued.
+
+I would like to say big thanks to everyone who supported me during this project.
+
 # sdrplay_container
 a linux I/Q stream server for SDRPlay RSP1, RSP1A, RSP2, RSPDuo (single tuner mode)
 
